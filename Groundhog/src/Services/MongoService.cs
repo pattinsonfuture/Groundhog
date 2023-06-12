@@ -1,7 +1,10 @@
 ﻿using Groundhog.Interfaces;
 using MongoDB.Bson;
+using MongoDB.Bson.Serialization;
 using MongoDB.Driver;
+using MongoDB.Driver.Core.Configuration;
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.Json;
@@ -9,20 +12,33 @@ using System.Threading.Tasks;
 
 namespace Groundhog.Services
 {
-    public class DatabaseService
+    public class MongoService
     {
         private IMongoDatabase _database;
         private IMongoCollection<BsonDocument> _collection;
         private CancellationTokenSource _cancellationTokenSource;
         private Task _changeStreamTask;
 
-        public DatabaseService(string connectionString, string databaseName, string collectionName)
+        public async Task ConnectAsync(string connectionString, string databaseName, string collectionName, LoggingService _logger)
         {
-            // 连接到 MongoDB
-            var client = new MongoClient(connectionString);
-            _database = client.GetDatabase(databaseName);
-            _collection = _database.GetCollection<BsonDocument>(collectionName);
+            try
+            {
+                // 连接到 MongoDB
+                var client = new MongoClient(connectionString);
+                _database = client.GetDatabase(databaseName);
+                _collection = _database.GetCollection<BsonDocument>(collectionName);
+
+                // 记录连接成功的日志，傳入Discord.LogMessage
+                await _logger.LogInfoAsync("MongoService", "成功連結到 MongoDB");
+            }
+            catch (Exception ex)
+            {
+                // 记录连接过程中的错误日志
+                await _logger.LogErrorAsync("MongoService", ex.Message);
+                throw; // 重新抛出异常以指示连接失败
+            }
         }
+
 
         public void StartChangeStream()
         {
@@ -64,35 +80,31 @@ namespace Groundhog.Services
                         // 解析变更事件并执行相应的操作
                         var pluginName = document.GetValue("name").AsString;
                         var isEnabled = document.GetValue("isEnabled").AsBoolean;
-                        // 执行更新逻辑...
+
+                        // 重新注册插件
+                        //var pluginService = services.GetRequiredService<PluginService>();
+                        //await pluginService.InstallPluginsAsync();
                     }
                 }
             }
         }
-
-        public async Task<List<IPlugin>> GetEnabledPluginsAsync()
+        /// <summary>
+        ///  搜尋過濾參數、取得插件列表
+        /// </summary>
+        /// <param filter=></param>
+        /// <returns></returns>
+        public async Task<List<IPlugin>> GetPluginsAsync(FilterDefinition<BsonDocument> filter)
         {
-            var plugins = new List<IPlugin>();
-
-            // 查询 enabledPlugins 数据
-            var filter = Builders<BsonDocument>.Filter.Empty;
             var documents = await _collection.Find(filter).ToListAsync();
-
-            // 将查询结果转换为 Plugin 对象
+            var plugins = new List<IPlugin>();
             foreach (var document in documents)
             {
-                var plugin = new Plugin
-                {
-                    Name = document.GetValue("name").AsString,
-                    // 其他字段...
-                };
-
+                var plugin = BsonSerializer.Deserialize<IPlugin>(document);
                 plugins.Add(plugin);
             }
-
             return plugins;
         }
 
-        // ...
+
     }
 }

@@ -1,4 +1,5 @@
 ﻿using Discord.Commands;
+using Discord.Interactions;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -9,12 +10,13 @@ namespace Groundhog.Interfaces
 {
     public interface IPlugin
     {
-        // 在接口中定义插件所需的方法和属性
         string Name { get; }
-        // 此Plugin是否啟動，function固定回傳bool
+        string Type { get; }
         string GetName();
+        // 此Plugin是否啟動，bool
         bool IsEnabled(ulong channelId);
-        // 定義任務類型
-        Task ExecuteAsync(SocketCommandContext context);
+        // 註冊指令
+        Task RegisterGlobalCommands(InteractionService interactionService, IServiceProvider serviceProvider);
+        //Task OnModuleLoad();
     }
 }

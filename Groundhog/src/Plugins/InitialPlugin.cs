@@ -1,5 +1,10 @@
-﻿using Discord.Commands;
+﻿using Discord;
+using Discord.Commands;
+using Discord.Interactions;
+using Discord.WebSocket;
 using Groundhog.Interfaces;
+using Groundhog.SlashCommands;
+using Microsoft.Extensions.DependencyInjection;
 using System;
 using System.Web;
 
@@ -7,26 +12,32 @@ namespace Groundhog.Plugins
 {
     public class InitialPlugin : IPlugin
     {
-        public string Name => "InitialPlugin";
+        public string Name { get; private set; }
+        public string Type { get; private set; }
+
+        public InitialPlugin()
+        {
+            Name = "InitialPlugin";
+            Type = "Initial";
+        }
 
         public string GetName()
         {
             return Name;
         }
 
-
         public bool IsEnabled(ulong channelId)
         {
-            // 根据 channelId 从数据库或其他数据源获取频道是否启用插件的信息，并返回相应的布尔值
-            // 实现你的逻辑...
+            // 你的邏輯來決定這個插件是否應該在給定的頻道中啟用
             return true;
         }
 
-        public async Task ExecuteAsync(SocketCommandContext context)
+        public async Task RegisterGlobalCommands(InteractionService interactionService, IServiceProvider serviceProvider)
         {
-            // 实现你的插件逻辑，包括处理 Slash Command 的逻辑
-            // 使用 context 变量来获取和处理命令上下文、参数等信息
-            await context.Channel.SendMessageAsync("My Plugin command executed!");
+            // 註冊 PingSlashCommand 到全域 AddModulesAsync
+            await interactionService.AddModuleAsync<PingSlashCommand>(serviceProvider);
+
         }
+
     }
 }
