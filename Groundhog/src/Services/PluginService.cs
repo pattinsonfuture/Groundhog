@@ -2,6 +2,8 @@
 using Discord.Interactions;
 using Discord.WebSocket;
 using Groundhog.Interfaces;
+using Groundhog.Services;
+using Microsoft.Extensions.Configuration;
 using System.Reflection;
 
 public class PluginService
@@ -10,19 +12,25 @@ public class PluginService
     private readonly DiscordSocketClient _client;
     private readonly InteractionService _commands;
     private readonly IServiceProvider _services;
+    private readonly IConfiguration _configuration;
 
-    public PluginService(DiscordSocketClient client, InteractionService commands, IServiceProvider services)
+    public PluginService(DiscordSocketClient client, InteractionService commands, IServiceProvider services, IConfiguration configuration)
     {
         _plugins = new List<IPlugin>();
         _client = client;
         _commands = commands;
         _services = services;
+        _configuration = configuration;
+    }
+
+    public void AddPlugin(IPlugin plugin)
+    {
+        _plugins.Add(plugin);
     }
 
     public async Task InitializeAsync()
     {
-        // Add the public modules that inherit InteractionModuleBase<T> to the InteractionService
-        await _commands.AddModulesAsync(Assembly.GetEntryAssembly(), _services);
+        _client.Ready += ReadyAsync;
 
         // Process the InteractionCreated payloads to execute Interactions commands
         _client.InteractionCreated += HandleInteraction;
@@ -34,44 +42,23 @@ public class PluginService
     }
 
 
-    public void AddPlugin(IPlugin plugin)
+    private async Task ReadyAsync()
     {
-        _plugins.Add(plugin);
-    }
 
-    public async Task RegisterAllCommands()
-    {
         // 打印所有插件的名稱
         Console.WriteLine("Registering all commands...");
         foreach (var plugin in _plugins)
         {
             Console.WriteLine($"Registering commands for {plugin.GetName()}...");
-            await plugin.RegisterGlobalCommands(_commands, _services);
+            await plugin.InstallCommands(_commands, _services);
 
         }
-            // Process the InteractionCreated payloads to execute Interactions commands
-            _client.InteractionCreated += HandleInteraction;
+        // Register all the commands in the assembly that contains the specified type
+        Console.WriteLine("Registering all commands...TestGuild:" + _configuration["TestGuild"]);
 
-            // Process the command execution results 
-            _commands.SlashCommandExecuted += SlashCommandExecuted;
-            _commands.ContextCommandExecuted += ContextCommandExecuted;
-            _commands.ComponentCommandExecuted += ComponentCommandExecuted;
+        await _commands.RegisterCommandsToGuildAsync(UInt64.Parse(_configuration["TestGuild"]), true);
     }
 
-    private Task ComponentCommandExecuted(ComponentCommandInfo arg1, IInteractionContext arg2, IResult arg3)
-    {
-        return Task.CompletedTask;
-    }
-
-    private Task ContextCommandExecuted(ContextCommandInfo arg1, IInteractionContext arg2, IResult arg3)
-    {
-        return Task.CompletedTask;
-    }
-
-    private Task SlashCommandExecuted(SlashCommandInfo arg1, IInteractionContext arg2, IResult arg3)
-    {
-        return Task.CompletedTask;
-    }
     private async Task HandleInteraction(SocketInteraction arg)
     {
         try
@@ -90,4 +77,20 @@ public class PluginService
                 await arg.GetOriginalResponseAsync().ContinueWith(async (msg) => await msg.Result.DeleteAsync());
         }
     }
+
+    private Task ComponentCommandExecuted(ComponentCommandInfo arg1, IInteractionContext arg2, IResult arg3)
+    {
+        return Task.CompletedTask;
+    }
+
+    private Task ContextCommandExecuted(ContextCommandInfo arg1, IInteractionContext arg2, IResult arg3)
+    {
+        return Task.CompletedTask;
+    }
+
+    private Task SlashCommandExecuted(SlashCommandInfo arg1, IInteractionContext arg2, IResult arg3)
+    {
+        return Task.CompletedTask;
+    }
+
 }

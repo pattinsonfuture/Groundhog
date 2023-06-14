@@ -15,8 +15,10 @@ namespace Groundhog.Interfaces
         string GetName();
         // 此Plugin是否啟動，bool
         bool IsEnabled(ulong channelId);
-        // 註冊指令
-        Task RegisterGlobalCommands(InteractionService interactionService, IServiceProvider serviceProvider);
-        //Task OnModuleLoad();
+        // 安裝 Commands
+        Task InstallCommands(InteractionService interactionService, IServiceProvider serviceProvider);
+        // 卸載 Commands
+        Task UninstallCommands(InteractionService interactionService);
+
     }
 }

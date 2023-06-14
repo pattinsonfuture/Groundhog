@@ -83,8 +83,8 @@ namespace Groundhog
 
             // plugin 插入 InitialPlugin
             _pluginService.AddPlugin(new InitialPlugin());
-            // 獲取 PluginService 實例，並註冊所有插件
-            await _pluginService.RegisterAllCommands();
+            // 獲取 PluginService 實例，並初始化
+            await _pluginService.InitializeAsync();
 
             // Subscribe to client log events
             _client.Log += async (LogMessage msg) => provider.GetRequiredService<LoggingService>().LogAsync(msg);
@@ -92,24 +92,9 @@ namespace Groundhog
             _commands.Log += async (LogMessage msg) => provider.GetRequiredService<LoggingService>().LogAsync(msg);
 
 
-
-
-
-            _client.Ready += async () => {
-                Console.WriteLine("Bot is connected!");
-                await _commands.RegisterCommandsToGuildAsync(UInt64.Parse(Configuration["TestGuild"]), true);
-                Console.WriteLine("Bot is RegisterCommandsToGuildAsync !" + Configuration["TestGuild"]);
-
-            };
-
             // Login and connect to Discord.
             await _client.LoginAsync(TokenType.Bot, Configuration["DiscordToken"]);
             await _client.StartAsync();
-
-
-
-    
-
 
             await Task.Delay(-1);
         }
