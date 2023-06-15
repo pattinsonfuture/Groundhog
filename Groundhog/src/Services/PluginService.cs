@@ -4,11 +4,11 @@ using Discord.WebSocket;
 using Groundhog.Interfaces;
 using Groundhog.Services;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using System.Reflection;
 
 public class PluginService
 {
-    private readonly List<IPlugin> _plugins;
     private readonly DiscordSocketClient _client;
     private readonly InteractionService _commands;
     private readonly IServiceProvider _services;
@@ -18,7 +18,6 @@ public class PluginService
 
     public PluginService(DiscordSocketClient client, InteractionService commands, IServiceProvider services, IConfiguration configuration,MongoService mongo, LoggingService logger)
     {
-        _plugins = new List<IPlugin>();
         _client = client;
         _commands = commands;
         _services = services;
@@ -48,8 +47,8 @@ public class PluginService
         var guilds = await _mongo.GetAllGuildsAsync();
 
         //{
-        //    "_id": "1076913272323842209",
-        //    "name": "AI實驗室",
+        //    "_id": "123456789012345678",
+        //    "name": "Guild Name",
         //    "plugins": [
         //        {
         //            "name": "InitialPlugin",
@@ -64,19 +63,27 @@ public class PluginService
             _logger.LogInfoAsync("PluginService", $"Registering commands for {guild["name"]}...").Wait();
             foreach (var plugin in guild["plugins"].AsBsonArray)
             {
+                _logger.LogInfoAsync("PluginService", $"Registering {plugin["name"]}...").Wait();
                 var pluginName = plugin["name"].AsString;
                 var isEnabled = plugin["isEnabled"].AsBoolean;
-                // pluginName 轉成 IPlugin 並安裝 Commands
+                // pluginName 取得實例並初始化及註冊 Commands
                 var pluginType = Assembly.GetExecutingAssembly().GetType($"Groundhog.Plugins.{pluginName}");
-                var pluginInstance = (IPlugin)Activator.CreateInstance(pluginType);
+                var pluginInstance = (IPlugin)_services.GetService(pluginType);
+                if (pluginType == null)
+                {
+                    _logger.LogErrorAsync("PluginService", $"Could not find plugin type: Groundhog.Plugins.{pluginName}").Wait();
+                    continue;
+                }
                 if (isEnabled)
                 {
+                    // 初始化 Plugin
+                    pluginInstance.Initialize();
                     // 安裝 Commands
-                    await pluginInstance.InstallCommands(_commands, _services);
+                    await pluginInstance.InstallCommands();
                 } else
                 {
                     // 卸載 Commands
-                    await pluginInstance.UninstallCommands(_commands);
+                    await pluginInstance.UninstallCommands();
                 }
             }
 

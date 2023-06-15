@@ -11,13 +11,16 @@ namespace Groundhog.Interfaces
     public interface IPlugin
     {
         string Name { get; }
+        // 取得 Plugin 名稱
         string GetName();
         // 預設是否啟動
         bool DefaulEnabled();
+        // 初始化
+        void Initialize();
         // 安裝 Commands
-        Task InstallCommands(InteractionService interactionService, IServiceProvider serviceProvider);
+        Task InstallCommands();
         // 卸載 Commands
-        Task UninstallCommands(InteractionService interactionService);
+        Task UninstallCommands();
 
     }
 }

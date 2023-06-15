@@ -55,6 +55,22 @@ namespace Groundhog.Services
             return guilds;
         }
 
+        public async Task<BsonDocument> GetGuildAsync(string guildId)
+        {
+            // 連結到 Guilds Collection
+            _collection = _database.GetCollection<BsonDocument>("guilds");
+            // 建立一個過濾器來找到符合 guildId 的文檔
+            var filter = Builders<BsonDocument>.Filter.Eq("_id", guildId);
+            // 使用過濾器來查詢文檔
+            var guild = await _collection.Find(filter).FirstOrDefaultAsync();
+            if (guild == null)
+            {
+                // 如果找不到文檔，則返回 null 或者拋出一個適當的異常
+                return null;
+            }
+            return guild;
+        }
+
 
         public void StartChangeStream()
         {

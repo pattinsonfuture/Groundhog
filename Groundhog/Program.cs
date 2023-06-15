@@ -9,6 +9,7 @@ using Microsoft.Extensions.Logging;
 using Discord.Interactions;
 using Groundhog.Interfaces;
 using Groundhog.Plugins;
+using System.Reflection;
 
 namespace Groundhog
 {
@@ -41,7 +42,7 @@ namespace Groundhog
                     // 註冊 DiscordSocketClient 實例
                     services.AddSingleton(x => new DiscordSocketClient(new DiscordSocketConfig
                     {
-                        GatewayIntents = GatewayIntents.AllUnprivileged,
+                        GatewayIntents = GatewayIntents.AllUnprivileged | GatewayIntents.GuildMembers,
                         AlwaysDownloadUsers = true,
                     }));
 
@@ -50,6 +51,17 @@ namespace Groundhog
 
                     // 註冊 PluginService
                     services.AddSingleton<PluginService>();
+
+                    // 獲取所有插件類型
+                    var pluginTypes = Assembly.GetExecutingAssembly()
+                        .GetTypes()
+                        .Where(t => t.GetInterfaces().Contains(typeof(IPlugin)) && !t.IsAbstract);
+
+                    // 將所有插件註冊為 Transient 服務
+                    foreach (var pluginType in pluginTypes)
+                    {
+                        services.AddSingleton(pluginType);
+                    }
                 })
                 .Build();
 
@@ -74,8 +86,6 @@ namespace Groundhog
             // 啟動 Change Stream
             //_mongoService.StartChangeStream();
 
-            // plugin 插入 InitialPlugin
-            //_pluginService.AddPlugin(new InitialPlugin());
             // 獲取 PluginService 實例，並初始化
             await _pluginService.InitializeAsync();
 

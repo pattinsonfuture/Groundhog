@@ -39,14 +39,14 @@ namespace Groundhog.Services
         // 創建Discord.LogMessage實例，一般資訊LogSeverity.Info
         public Task LogInfoAsync(string unit,string message)
         {
-            var logMessage = new LogMessage(LogSeverity.Info, unit, message);
+            var logMessage = new LogMessage(LogSeverity.Info, '[' + unit + ']', message);
             return LogAsync(logMessage);
         }
 
         // 創建Discord.LogMessage實例，錯誤資訊LogSeverity.Error
         public Task LogErrorAsync(string unit, string message)
         {
-            var logMessage = new LogMessage(LogSeverity.Error, unit, message);
+            var logMessage = new LogMessage(LogSeverity.Error, '[' + unit + ']', message);
             return LogAsync(logMessage);
         }
     }
