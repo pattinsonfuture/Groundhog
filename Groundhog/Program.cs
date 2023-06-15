@@ -71,18 +71,11 @@ namespace Groundhog
             var _commands = provider.GetRequiredService<InteractionService>();
             // 獲取 PluginService 實例
             var _pluginService = provider.GetRequiredService<PluginService>();
-
-            // 設定 MongoDB 連接資訊
-            var MongoDBConnectionUri = Configuration["MongoDBConnectionUri"];
-            var MongoDBDatabaseName = Configuration["MongoDBDatabaseName"];
-            var MongoDBCollectionName = Configuration["MongoDBCollectionName"];
-            // 連接 MongoDB
-            await _mongoService.ConnectAsync(MongoDBConnectionUri, MongoDBDatabaseName, MongoDBCollectionName, _logger);
             // 啟動 Change Stream
-            _mongoService.StartChangeStream();
+            //_mongoService.StartChangeStream();
 
             // plugin 插入 InitialPlugin
-            _pluginService.AddPlugin(new InitialPlugin());
+            //_pluginService.AddPlugin(new InitialPlugin());
             // 獲取 PluginService 實例，並初始化
             await _pluginService.InitializeAsync();
 

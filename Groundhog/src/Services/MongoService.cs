@@ -1,4 +1,5 @@
 ﻿using Groundhog.Interfaces;
+using Microsoft.Extensions.Configuration;
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization;
 using MongoDB.Driver;
@@ -14,29 +15,44 @@ namespace Groundhog.Services
 {
     public class MongoService
     {
+
+        private readonly IConfiguration _configuration;
         private IMongoDatabase _database;
         private IMongoCollection<BsonDocument> _collection;
         private CancellationTokenSource _cancellationTokenSource;
         private Task _changeStreamTask;
+        private readonly LoggingService _logger;
 
-        public async Task ConnectAsync(string connectionString, string databaseName, string collectionName, LoggingService _logger)
+        public MongoService(IConfiguration configuration, LoggingService logger)
         {
+            _logger = logger;
+            _configuration = configuration;
+
             try
             {
-                // 连接到 MongoDB
-                var client = new MongoClient(connectionString);
-                _database = client.GetDatabase(databaseName);
-                _collection = _database.GetCollection<BsonDocument>(collectionName);
+                // 連結到 MongoDB
+                var client = new MongoClient(_configuration["MongoDBConnectionUri"]);
+                _database = client.GetDatabase(_configuration["MongoDBDatabaseName"]);
 
-                // 记录连接成功的日志，傳入Discord.LogMessage
-                await _logger.LogInfoAsync("MongoService", "成功連結到 MongoDB");
+                // 記錄到日誌
+                _logger.LogInfoAsync("MongoService", "成功連結到 MongoDB").Wait();
             }
             catch (Exception ex)
             {
-                // 记录连接过程中的错误日志
-                await _logger.LogErrorAsync("MongoService", ex.Message);
-                throw; // 重新抛出异常以指示连接失败
+                // 紀錄連結 MongoDB 失敗的錯誤訊息
+                _logger.LogErrorAsync("MongoService", ex.Message).Wait();
+                throw; // 拋出異常
             }
+        }
+
+        public async Task<List<BsonDocument>> GetAllGuildsAsync()
+        {
+            // 連結到 Guilds Collection
+            _collection = _database.GetCollection<BsonDocument>("guilds");
+            // 取得所有 Guilds
+            var guilds = await _collection.Find(new BsonDocument()).ToListAsync();
+
+            return guilds;
         }
 
 
@@ -87,22 +103,6 @@ namespace Groundhog.Services
                     }
                 }
             }
-        }
-        /// <summary>
-        ///  搜尋過濾參數、取得插件列表
-        /// </summary>
-        /// <param filter=></param>
-        /// <returns></returns>
-        public async Task<List<IPlugin>> GetPluginsAsync(FilterDefinition<BsonDocument> filter)
-        {
-            var documents = await _collection.Find(filter).ToListAsync();
-            var plugins = new List<IPlugin>();
-            foreach (var document in documents)
-            {
-                var plugin = BsonSerializer.Deserialize<IPlugin>(document);
-                plugins.Add(plugin);
-            }
-            return plugins;
         }
 
 

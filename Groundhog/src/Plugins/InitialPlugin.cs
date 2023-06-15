@@ -13,12 +13,10 @@ namespace Groundhog.Plugins
     public class InitialPlugin : IPlugin
     {
         public string Name { get; private set; }
-        public string Type { get; private set; }
 
         public InitialPlugin()
         {
             Name = "InitialPlugin";
-            Type = "Initial";
         }
 
         public string GetName()
@@ -26,9 +24,8 @@ namespace Groundhog.Plugins
             return Name;
         }
 
-        public bool IsEnabled(ulong channelId)
+        public bool DefaulEnabled()
         {
-            // 你的邏輯來決定這個插件是否應該在給定的頻道中啟用
             return true;
         }
 

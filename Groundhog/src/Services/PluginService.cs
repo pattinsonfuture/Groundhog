@@ -13,19 +13,18 @@ public class PluginService
     private readonly InteractionService _commands;
     private readonly IServiceProvider _services;
     private readonly IConfiguration _configuration;
+    private readonly MongoService _mongo;
+    private readonly LoggingService _logger;
 
-    public PluginService(DiscordSocketClient client, InteractionService commands, IServiceProvider services, IConfiguration configuration)
+    public PluginService(DiscordSocketClient client, InteractionService commands, IServiceProvider services, IConfiguration configuration,MongoService mongo, LoggingService logger)
     {
         _plugins = new List<IPlugin>();
         _client = client;
         _commands = commands;
         _services = services;
         _configuration = configuration;
-    }
-
-    public void AddPlugin(IPlugin plugin)
-    {
-        _plugins.Add(plugin);
+        _mongo = mongo;
+        _logger = logger;
     }
 
     public async Task InitializeAsync()
@@ -45,18 +44,45 @@ public class PluginService
     private async Task ReadyAsync()
     {
 
-        // 打印所有插件的名稱
-        Console.WriteLine("Registering all commands...");
-        foreach (var plugin in _plugins)
+        // 搜尋 MongoDB 中所有的Guilds
+        var guilds = await _mongo.GetAllGuildsAsync();
+
+        //{
+        //    "_id": "1076913272323842209",
+        //    "name": "AI實驗室",
+        //    "plugins": [
+        //        {
+        //            "name": "InitialPlugin",
+        //            "isEnabled": true
+        //        }
+        //    ]
+        //}
+
+        // 為每個 Guild 註冊有啟動的 Plugin、卸載沒有啟動的 
+        foreach (var guild in guilds)
         {
-            Console.WriteLine($"Registering commands for {plugin.GetName()}...");
-            await plugin.InstallCommands(_commands, _services);
+            _logger.LogInfoAsync("PluginService", $"Registering commands for {guild["name"]}...").Wait();
+            foreach (var plugin in guild["plugins"].AsBsonArray)
+            {
+                var pluginName = plugin["name"].AsString;
+                var isEnabled = plugin["isEnabled"].AsBoolean;
+                // pluginName 轉成 IPlugin 並安裝 Commands
+                var pluginType = Assembly.GetExecutingAssembly().GetType($"Groundhog.Plugins.{pluginName}");
+                var pluginInstance = (IPlugin)Activator.CreateInstance(pluginType);
+                if (isEnabled)
+                {
+                    // 安裝 Commands
+                    await pluginInstance.InstallCommands(_commands, _services);
+                } else
+                {
+                    // 卸載 Commands
+                    await pluginInstance.UninstallCommands(_commands);
+                }
+            }
 
+            // 註冊到此 Guild _id
+            await _commands.RegisterCommandsToGuildAsync(UInt64.Parse((string)guild["_id"]), true);
         }
-        // Register all the commands in the assembly that contains the specified type
-        Console.WriteLine("Registering all commands...TestGuild:" + _configuration["TestGuild"]);
-
-        await _commands.RegisterCommandsToGuildAsync(UInt64.Parse(_configuration["TestGuild"]), true);
     }
 
     private async Task HandleInteraction(SocketInteraction arg)
