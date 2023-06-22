@@ -67,7 +67,7 @@ public class PluginService
                 var pluginName = plugin["name"].AsString;
                 var isEnabled = plugin["isEnabled"].AsBoolean;
                 // pluginName 取得實例並初始化及註冊 Commands
-                var pluginType = Assembly.GetExecutingAssembly().GetType($"Groundhog.Plugins.{pluginName}");
+                var pluginType = Assembly.GetExecutingAssembly().GetType($"Groundhog.Plugins.{pluginName}.{pluginName}");
                 var pluginInstance = (IPlugin)_services.GetService(pluginType);
                 if (pluginType == null)
                 {

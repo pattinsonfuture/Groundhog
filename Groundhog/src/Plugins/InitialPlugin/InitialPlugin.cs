@@ -4,13 +4,13 @@ using Discord.Interactions;
 using Discord.WebSocket;
 using Groundhog.Interfaces;
 using Groundhog.Services;
-using Groundhog.SlashCommands;
+using Groundhog.Plugins.InitialPlugin.Commands;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using System;
 using System.Web;
 
-namespace Groundhog.Plugins
+namespace Groundhog.Plugins.InitialPlugin
 {
     public class InitialPlugin : IPlugin
     {

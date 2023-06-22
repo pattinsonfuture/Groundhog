@@ -3,7 +3,7 @@ using Discord.Interactions;
 using Discord.WebSocket;
 using Groundhog.Interfaces;
 using Groundhog.Services;
-using Groundhog.SlashCommands;
+using Groundhog.Plugins.WelcomePlugin.Commands;
 using Microsoft.Extensions.Configuration;
 using MongoDB.Bson;
 using System;
@@ -12,7 +12,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Groundhog.Plugins
+namespace Groundhog.Plugins.WelcomePlugin
 {
     public class WelcomePlugin : IPlugin
     {

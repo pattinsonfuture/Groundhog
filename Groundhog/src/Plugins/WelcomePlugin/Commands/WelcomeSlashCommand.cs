@@ -8,7 +8,7 @@ using System.Text;
 using Groundhog.Services;
 using Discord.WebSocket;
 
-namespace Groundhog.SlashCommands
+namespace Groundhog.Plugins.WelcomePlugin.Commands
 {
     // Must use InteractionModuleBase<SocketInteractionContext> for the InteractionService to auto-register the commands
     public class WelcomeSlashCommand : InteractionModuleBase<SocketInteractionContext>
