@@ -2,6 +2,7 @@
 using Discord.Interactions;
 using Discord.WebSocket;
 using Groundhog.Interfaces;
+using Groundhog.Plugins.InitialPlugin.Commands;
 using Groundhog.Services;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -15,7 +16,7 @@ public class PluginService
     private readonly IConfiguration _configuration;
     private readonly MongoService _mongo;
     private readonly LoggingService _logger;
-
+    private readonly HashSet<Type> _addedModules = new HashSet<Type>();
     public PluginService(DiscordSocketClient client, InteractionService commands, IServiceProvider services, IConfiguration configuration,MongoService mongo, LoggingService logger)
     {
         _client = client;
@@ -63,27 +64,30 @@ public class PluginService
             _logger.LogInfoAsync("PluginService", $"Registering commands for {guild["name"]}...").Wait();
             foreach (var plugin in guild["plugins"].AsBsonArray)
             {
-                _logger.LogInfoAsync("PluginService", $"Registering {plugin["name"]}...").Wait();
                 var pluginName = plugin["name"].AsString;
                 var isEnabled = plugin["isEnabled"].AsBoolean;
+                _logger.LogInfoAsync("PluginService", $"Registering {plugin["name"]}, isEnabled {plugin["isEnabled"]}").Wait();
                 // pluginName 取得實例並初始化及註冊 Commands
                 var pluginType = Assembly.GetExecutingAssembly().GetType($"Groundhog.Plugins.{pluginName}.{pluginName}");
                 var pluginInstance = (IPlugin)_services.GetService(pluginType);
+                // 初始化 Plugin
+                pluginInstance.Initialize();
                 if (pluginType == null)
                 {
                     _logger.LogErrorAsync("PluginService", $"Could not find plugin type: Groundhog.Plugins.{pluginName}").Wait();
                     continue;
                 }
-                if (isEnabled)
+                    // 檢查是否已經添加了模塊
+                if (isEnabled && !_addedModules.Contains(pluginType))
                 {
-                    // 初始化 Plugin
-                    pluginInstance.Initialize();
                     // 安裝 Commands
                     await pluginInstance.InstallCommands();
+                    _addedModules.Add(pluginType);
                 } else
                 {
-                    // 卸載 Commands
+                    // 安裝 Commands
                     await pluginInstance.UninstallCommands();
+                    _addedModules.Remove(pluginType);
                 }
             }
 

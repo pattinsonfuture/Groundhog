@@ -46,7 +46,10 @@ namespace Groundhog.Plugins.WelcomePlugin
         }
         public void Initialize()
         {
+            // 使用者加入公會時觸發
             _client.UserJoined += UserJoined;
+            // 使用者離開公會時觸發
+            _client.UserLeft += UserLeft;
         }
 
         public async Task InstallCommands()
@@ -69,6 +72,11 @@ namespace Groundhog.Plugins.WelcomePlugin
             var guild = await _mongo.GetGuildAsync(guildId.ToString());
             // 搜尋name為WelcomePlugin的設定
             var welcome = guild["plugins"].AsBsonArray.Where(x => x["name"] == "WelcomePlugin").FirstOrDefault();
+            // 如果在該公會中沒有啟用WelcomePlugin，尋找isEnabled的值，如果沒有啟用，則直接返回
+            if (welcome == null || !welcome["isEnabled"].AsBoolean)
+            {
+                return;
+            }
             // 取出useChannel的值 轉成 ulong
             var useChannelId = ulong.Parse(welcome["useChannel"].ToString());
             // 指定頻道ID，如果沒有指定，就略過
@@ -88,6 +96,34 @@ namespace Groundhog.Plugins.WelcomePlugin
             }
         }
 
-    }
+        private async Task UserLeft(SocketGuild guild, SocketUser user)
+        {
+            // 取得公會ID
+            var guildId = guild.Id;
 
+            // MongoDB 搜尋公會
+            var guildDoc = await _mongo.GetGuildAsync(guildId.ToString());
+
+            // 搜尋name為WelcomePlugin的設定
+            var welcome = guildDoc["plugins"].AsBsonArray.FirstOrDefault(x => x["name"].AsString == "WelcomePlugin");
+            // 如果在該公會中沒有啟用WelcomePlugin，尋找isEnabled的值，如果沒有啟用，則直接返回
+            if (welcome == null || !welcome["isEnabled"].AsBoolean)
+            {
+                return;
+            }
+            // 取出useChannel的值 轉成 ulong
+            ulong channelId;
+            if (welcome != null && ulong.TryParse(welcome["useChannel"].AsString, out channelId))
+            {
+                // 指定頻道ID，如果沒有指定，就略過
+                var channel = guild.GetTextChannel(channelId);
+
+                if (channel != null)
+                {
+                    // {user.Mention} 離開了 {guild.Name} // 公會名稱改為粗體
+                    await channel.SendMessageAsync($"{user.Mention} 離開了 **{guild.Name}**");
+                }
+            }
+        }
+    }
 }
